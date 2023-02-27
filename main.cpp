@@ -36,15 +36,16 @@ int main(int argc, char* argv[]) {
 
   // Create instance of LSM9DS1 driver
   LSM9DS1Namespace::LSM9DS1 sensor(spiDevice);
+  std::cout << "sensor is " << sensor.verify() << std::endl;
 
   // Loop until kill signal is received
   while (g_running) {
     // Read accelerometer and gyro data from sensor
-    auto data = sensor.readSensorData();
+    auto data = sensor.readSensorDataScaled();
 
     // Print accelerometer and gyro data
-    std::cout << "Accelerometer (g): X=" << static_cast<double>(data.accelX) / 32768.0 * 2.0 << ", Y=" << static_cast<double>(data.accelY) / 32768.0 * 2.0 << ", Z=" << static_cast<double>(data.accelZ) / 32768.0 * 2.0 << std::endl;
-    std::cout << "Gyroscope (dps): X=" << static_cast<double>(data.gyroX) / 32768.0 * 245.0 << ", Y=" << static_cast<double>(data.gyroY) / 32768.0 * 245.0 << ", Z=" << static_cast<double>(data.gyroZ) / 32768.0 * 245.0 << std::endl;
+    std::cout << "Accelerometer (g): X=" << data.accelX << ", Y=" << data.accelY << ", Z=" << data.accelZ << std::endl;
+    std::cout << "Gyroscope (dps): X=" << data.gyroX << ", Y=" << data.gyroY << ", Z=" << data.gyroZ << std::endl;
 
     // Wait for a short time before reading again
     std::this_thread::sleep_for(std::chrono::milliseconds(100));

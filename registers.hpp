@@ -35,7 +35,7 @@
 #define LSM9DS1_CTRL_REG9       0x23
 #define LSM9DS1_CTRL_REG10      0x24
 #define LSM9DS1_INT_GEN_SRC_XL  0x26
-#define LSM9DS1_STATUS_REG_ALT  0x27
+#define LSM9DS1_STATUS_REG_M    0x27
 #define LSM9DS1_OUT_X_L_XL      0x28
 #define LSM9DS1_OUT_X_H_XL      0x29
 #define LSM9DS1_OUT_Y_L_XL      0x2A

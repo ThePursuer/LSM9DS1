@@ -32,6 +32,7 @@ LSM9DS1::LSM9DS1(const std::string &spiDev) {
     spiFd = -1;
     return;
   }
+  reset();
 
   // Initialize the sensor
   uint8_t txBuf[2] = {0};
@@ -63,10 +64,10 @@ LSM9DS1::LSM9DS1(const std::string &spiDev) {
   txBuf[1] = LSM9DS1_CTRL_REG4_FS_G_245dps;
   spiTransfer(txBuf, rxBuf, 2);
 
-  // Enable interrupts (optional)
-  txBuf[0] = LSM9DS1_INT1_CTRL;
-  txBuf[1] = 0x01; // Interrupt on new data available
-  spiTransfer(txBuf, rxBuf, 2);
+  // // Enable interrupts (optional)
+  // txBuf[0] = LSM9DS1_INT1_CTRL;
+  // txBuf[1] = 0x01; // Interrupt on new data available
+  // spiTransfer(txBuf, rxBuf, 2);
   
   // Enable accelerometer and gyroscope
   txBuf[0] = LSM9DS1_CTRL_REG1_G;
@@ -109,6 +110,62 @@ SensorData LSM9DS1::readSensorData() {
   data.gyroZ = (int16_t)((rxBuf[12] << 8) | rxBuf[11]);
 
   return data;
+}
+
+SensorDataScaled LSM9DS1::readSensorDataScaled() {
+  // Read raw sensor data
+  auto data = readSensorData();
+
+  // Scale accelerometer data
+  double accelScale = 2.0 / 32768.0; // assuming +/-2g range
+  SensorDataScaled scaledData;
+  scaledData.accelX = static_cast<double>(data.accelX) * accelScale;
+  scaledData.accelY = static_cast<double>(data.accelY) * accelScale;
+  scaledData.accelZ = static_cast<double>(data.accelZ) * accelScale;
+
+  // Scale gyro data
+  double gyroScale = 245.0 / 32768.0; // assuming +/-245dps range
+  scaledData.gyroX = static_cast<double>(data.gyroX) * gyroScale;
+  scaledData.gyroY = static_cast<double>(data.gyroY) * gyroScale;
+  scaledData.gyroZ = static_cast<double>(data.gyroZ) * gyroScale;
+
+  // Return scaled sensor data
+  return scaledData;
+}
+
+void LSM9DS1::reset() {
+  // Write 0x05 to CTRL_REG8 to initiate software reset
+  uint8_t txBuf[] = {LSM9DS1_CTRL_REG8, 0x05};
+  uint8_t rxBuf[2];
+  spiTransfer(txBuf, rxBuf, 2);
+
+  // Wait for the reset to complete (100ms delay)
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+}
+
+bool LSM9DS1::verify() {
+  // Check accelerometer and gyroscope data ready status
+  uint8_t txBuf[] = {LSM9DS1_OUT_X_L_XL};
+  uint8_t rxBuf[7];
+  spiTransfer(txBuf, rxBuf, 7);
+  bool accelDataReady = (rxBuf[2] & (1 << 3)) != 0;
+  bool gyroDataReady = (rxBuf[5] & (1 << 3)) != 0;
+
+  // Check magnetometer data ready status
+  txBuf[0] = LSM9DS1_STATUS_REG_M;
+  spiTransfer(txBuf, rxBuf, 2);
+  bool magDataReady = (rxBuf[1] & (1 << 0)) != 0;
+
+  // Return true if all sensors have data ready, false otherwise
+  return accelDataReady && gyroDataReady && magDataReady;
+}
+
+LSM9DS1::~LSM9DS1() {
+  // Reset device
+  reset();
+
+  // Close SPI file descriptor
+  close(spiFd);
 }
 
 } // namespace LSM9DS1Namespace
